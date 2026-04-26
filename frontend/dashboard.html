@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PMO Chatbot Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --primary: #005A8B;
+        --primary-dark: #003d61;
+        --surface: #ffffff;
+        --surface-alt: #f4f6f9;
+        --border: #e2e6ea;
+        --text: #1a1d23;
+        --text-2: #4b5563;
+        --text-3: #9ca3af;
+        --success: #065f46;
+        --warning: #b35900;
+        --danger: #991b1b;
+    }
+
+    body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--surface-alt);
+        color: var(--text);
+        min-height: 100vh;
+    }
+
+    .login {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .login-card h1 {
+        font-size: 22px;
+        color: var(--text);
+        margin-bottom: 8px;
+    }
+
+    .login-card p {
+        color: var(--text-2);
+        font-size: 14px;
+        margin-bottom: 24px;
+    }
+
+    .login-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        margin-bottom: 12px;
+    }
+
+    .login-input:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        width: 100%;
+        padding: 12px;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-outline {
+        background: white;
+        color: var(--text-2);
+        border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover { background: var(--surface-alt); }
+
+    .login-error {
+        color: var(--danger);
+        font-size: 12px;
+        margin-top: 8px;
+        display: none;
+    }
+
+    .layout {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        width: 220px;
+        background: var(--primary-dark);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+    }
+
+    .sidebar-logo {
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .sidebar-logo-title {
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .sidebar-logo-sub {
+        font-size: 11px;
+        opacity: 0.6;
+        margin-top: 2px;
+    }
+
+    .nav {
+        padding: 12px 10px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        opacity: 0.8;
+        transition: all 0.15s;
+        border: none;
+        background: none;
+        color: white;
+        width: 100%;
+        text-align: left;
+        font-family: inherit;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+    .nav-item.active { background: rgba(255,255,255,0.15); opacity: 1; font-weight: 600; }
+
+    .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .page {
+        padding: 20px 24px;
+        flex: 1;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary);
+    }
+
+    .stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 26px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .stat-sub {
+        font-size: 11px;
+        color: var(--text-2);
+        margin-top: 4px;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .charts-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .chart-card {
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+    }
+
+    .chart-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 2px;
+    }
+
+    .chart-subtitle {
+        font-size: 11px;
+        color: var(--text-3);
+        margin-bottom: 12px;
+    }
+
+    .chart-wrap {
+        height: 220px;
+        position: relative;
+    }
+
+    .table-card {
+        background: var(--surface);
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .table-header {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-title {
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        padding: 9px 14px;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-3);
+        background: var(--surface-alt);
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
+
+    td {
+        padding: 10px 14px;
+        font-size: 12.5px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-alt); }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10.5px;
+        font-weight: 600;
+    }
+
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger  { background: #fee2e2; color: #991b1b; }
+    .badge-info    { background: #dbeafe; color: #1e40af; }
+    .badge-neutral { background: #f3f4f6; color: #4b5563; }
+
+    .conf-pill {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .conf-high { background: #d1fae5; color: #065f46; }
+    .conf-medium { background: #fef3c7; color: #92400e; }
+    .conf-low { background: #fee2e2; color: #991b1b; }
+
+    .filter-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+
+    .filter-chip {
+        padding: 5px 14px;
+        border-radius: 16px;
+        border: 1.5px solid var(--border);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        background: white;
+        color: var(--text-2);
+        transition: all 0.15s;
+        font-family: inherit;
+    }
+
+    .filter-chip.active {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: #f0f7fb;
+    }
+
+    .priority-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        margin-right: 4px;
+    }
+
+    .priority-high { background: var(--danger); }
+    .priority-medium { background: var(--warning); }
+    .priority-low { background: var(--success); }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 20px;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal h2 {
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+
+    .modal-field {
+        margin-bottom: 12px;
+    }
+
+    .modal-field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-2);
+        margin-bottom: 4px;
+    }
+
+    .modal-field input,
+    .modal-field textarea,
+    .modal-field select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 13px;
+    }
+
+    .modal-field textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-3);
+    }
+
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin: 0 auto 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-3);
+    }
+
+    @media (max-width: 1000px) {
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .charts-grid { grid-template-columns: 1fr; }
+        .charts-grid-3 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+        .sidebar { display: none; }
+        .page { padding: 14px; }
+    }
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+    <div class="login-card">
+        <h1>PMO Dashboard</h1>
+        <p>Enter the admin token to access analytics and ticket management</p>
+        <input type="password" id="token-input" class="login-input" placeholder="Admin token" autocomplete="off"/>
+        <button class="btn btn-primary" onclick="login()">Sign in</button>
+        <div id="login-error" class="login-error">Invalid token. Please try again.</div>
+    </div>
+</div>
+
+<div id="app" style="display:none;">
+    <div class="layout">
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-title">PMO Assistant</div>
+                <div class="sidebar-logo-sub">Admin Dashboard</div>
+            </div>
+            <div class="nav">
+                <button class="nav-item active" data-page="overview" onclick="switchPage('overview')">Overview</button>
+                <button class="nav-item" data-page="tickets" onclick="switchPage('tickets')">Tickets</button>
+                <button class="nav-item" data-page="interactions" onclick="switchPage('interactions')">Interactions</button>
+                <button class="nav-item" data-page="documents" onclick="switchPage('documents')">Documents</button>
+            </div>
+            <div style="padding:14px; border-top:1px solid rgba(255,255,255,0.1); font-size:11px; opacity:0.6;">
+                <button onclick="logout()" style="background:none;border:none;color:white;cursor:pointer;font-size:11px;text-decoration:underline;font-family:inherit;padding:0;">
+                    Sign out
+                </button>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="topbar">
+                <div class="topbar-title" id="page-title">Analytics Overview</div>
+                <div class="topbar-actions">
+                    <button class="btn btn-outline" onclick="exportCsv()">Export CSV</button>
+                    <button class="btn btn-primary" onclick="refresh()">Refresh</button>
+                </div>
+            </div>
+            <div class="page" id="page-content">
+                <div class="loading"><div class="spinner"></div>Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="ticket-modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <h2 id="modal-title">Update Ticket</h2>
+        <div class="modal-field">
+            <label>Question</label>
+            <div id="modal-question" style="padding:10px; background:var(--surface-alt); border-radius:6px; font-size:13px;"></div>
+        </div>
+        <div class="modal-field">
+            <label for="modal-status">Status</label>
+            <select id="modal-status">
+                <option value="open">Open</option>
+                <option value="in-progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+            </select>
+        </div>
+        <div class="modal-field">
+            <label for="modal-assigned">Assigned to</label>
+            <input type="text" id="modal-assigned" placeholder="Name of PMO team member"/>
+        </div>
+        <div class="modal-field">
+            <label for="modal-resolution">Resolution (sent to user)</label>
+            <textarea id="modal-resolution" placeholder="Explain what you did to resolve this..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveTicket()">Save and Notify User</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === ''
+    ? 'http://localhost:3001'
+    : window.location.origin;
+
+let adminToken = null;
+let currentPage = 'overview';
+let ticketFilter = 'all';
+let currentTicketId = null;
+let chartInstances = {};
+
+document.getElementById('token-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+});
+
+async function login() {
+    const token = document.getElementById('token-input').value.trim();
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${API_URL}/api/analytics?days=1`, {
+            headers: { 'X-Admin-Token': token }
+        });
+        if (!res.ok) throw new Error('Invalid token');
+
+        adminToken = token;
+        localStorage.setItem('pmo-admin-token', token);
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadOverview();
+    } catch (err) {
+        document.getElementById('login-error').style.display = 'block';
+    }
+}
+
+function logout() {
+    localStorage.removeItem('pmo-admin-token');
+    location.reload();
+}
+
+const savedToken = localStorage.getItem('pmo-admin-token');
+if (savedToken) {
+    document.getElementById('token-input').value = savedToken;
+    login();
+}
+
+async function api(path, options = {}) {
+    const res = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+            'X-Admin-Token': adminToken,
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        }
+    });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+}
+
+function switchPage(page) {
+    currentPage = page;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+
+    const titles = {
+        overview: 'Analytics Overview',
+        tickets: 'Support Tickets',
+        interactions: 'Interaction Logs',
+        documents: 'Document Index'
+    };
+    document.getElementById('page-title').textContent = titles[page];
+
+    Object.values(chartInstances).forEach(c => c.destroy());
+    chartInstances = {};
+
+    document.getElementById('page-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+
+    if (page === 'overview') loadOverview();
+    else if (page === 'tickets') loadTickets();
+    else if (page === 'interactions') loadInteractions();
+    else if (page === 'documents') loadDocuments();
+}
+
+function refresh() {
+    switchPage(currentPage);
+}
+
+function exportCsv() {
+    const url = `${API_URL}/api/analytics/export.csv`;
+    fetch(url, { headers: { 'X-Admin-Token': adminToken } })
+        .then(r => r.blob())
+        .then(blob => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `pmo-chatbot-logs-${new Date().toISOString().substring(0,10)}.csv`;
+            link.click();
+        });
+}
+
+async function loadOverview() {
+    try {
+        const data = await api('/api/analytics?days=30');
+        renderOverview(data);
+    } catch (err) {
+        document.getElementById('page-content').innerHTML = `<div class="empty">Failed to load analytics: ${err.message}</div>`;
+    }
+}
+
+function renderOverview(d) {
+    const pct = n => Math.round(n * 100);
+    const avgRatingDisplay = d.ratingCount > 0 ? d.averageRating.toFixed(1) : '-';
+    const ratingStars = d.ratingCount > 0
+        ? Array.from({length: 5}, (_, i) => i < Math.round(d.averageRating) ? '<span style="color:#f59e0b;">&#9733;</span>' : '<span style="color:#d1d5db;">&#9734;</span>').join('')
+        : '<span style="color:#9ca3af;">No ratings yet</span>';
+
+    document.getElementById('page-content').innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Interactions</div>
+                <div class="stat-value">${d.totalInteractions}</div>
+                <div class="stat-sub">Last 30 days</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Unique Users</div>
+                <div class="stat-value">${d.uniqueUsers}</div>
+                <div class="stat-sub">Across departments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Escalation Rate</div>
+                <div class="stat-value">${pct(d.escalationRate)}%</div>
+                <div class="stat-sub">${d.escalations} tickets raised</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Confidence</div>
+                <div class="stat-value">${pct(d.averageConfidence)}%</div>
+                <div class="stat-sub">Answer quality</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Daily Usage</div>
+                <div class="chart-subtitle">Interactions per day (last 30 days)</div>
+                <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">User Satisfaction</div>
+                <div class="chart-subtitle">${d.ratingCount} ratings received</div>
+                <div style="text-align:center; padding:30px 0;">
+                    <div style="font-size:52px; font-weight:800; color:var(--primary); line-height:1;">${avgRatingDisplay}</div>
+                    <div style="font-size:22px; letter-spacing:3px; margin-top:8px;">${ratingStars}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid-3">
+            <div class="chart-card">
+                <div class="chart-title">Top Categories</div>
+                <div class="chart-subtitle">What users ask about most</div>
+                <div class="chart-wrap"><canvas id="chart-categories"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Usage by Department</div>
+                <div class="chart-subtitle">Where users are coming from</div>
+                <div class="chart-wrap"><canvas id="chart-departments"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Peak Hours</div>
+                <div class="chart-subtitle">When users ask questions</div>
+                <div class="chart-wrap"><canvas id="chart-hours"></canvas></div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Recent Interactions</div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Question</th>
+                            <th>Category</th>
+                            <th>Confidence</th>
+                            <th>Escalated</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${d.recentInteractions.length === 0
+                            ? '<tr><td colspan="7" style="text-align:center; color:var(--text-3);">No interactions yet</td></tr>'
+                            : d.recentInteractions.map(i => `
+                            <tr>
+                                <td style="font-size:11px; color:var(--text-3); white-space:nowrap;">${formatDate(i.createdAt)}</td>
+                                <td>${escapeHtml(i.userName || 'Anonymous')}</td>
+                                <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(i.question)}</td>
+                                <td><span class="badge badge-info">${escapeHtml(i.category || 'Other')}</span></td>
+                                <td><span class="conf-pill ${confClass(i.confidence)}">${pct(i.confidence)}%</span></td>
+                                <td>${i.escalated ? `<span class="badge badge-warning">${escapeHtml(i.ticketId || 'yes')}</span>` : '<span style="color:var(--text-3);">-</span>'}</td>
+                                <td>${i.rating ? renderStars(i.rating) : '<span style="color:var(--text-3);">-</span>'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    renderDailyChart(d.usageByDay);
+    renderCategoriesChart(d.topCategories);
+    renderDepartmentsChart(d.topDepartments);
+    renderHoursChart(d.usageByHour);
+}
+
+function renderStars(n) {
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+        html += i < n ? '<span style="color:#f59e0b;">&#9733;</span>' : '<span style="color:#d1d5db;">&#9734;</span>';
+    }
+    return html;
+}
+
+function renderDailyChart(data) {
+    const ctx = document.getElementById('chart-daily');
+    if (!ctx) return;
+    chartInstances.daily = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date.substring(5)),
+            datasets: [{
+                label: 'Interactions',
+                data: data.map(d => d.count),
+                borderColor: '#005A8B',
+                backgroundColor: 'rgba(0,90,139,0.1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+function renderCategoriesChart(data) {
+    const ctx = document.getElementById('chart-categories');
+    if (!ctx || data.length === 0) return;
+    const colors = ['#005A8B', '#0072af', '#00a0c1', '#4ade80', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280'];
+    chartInstances.categories = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.category || 'Other'),
+            datasets: [{ data: data.map(d => d.count), backgroundColor: colors }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 6 } } }
+        }
+    });
+}
+
+function renderDepartmentsChart(data) {
+    const ctx = document.getElementById('chart-departments');
+    if (!ctx || data.length === 0) return;
+    chartInstances.departments = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.department),
+            datasets: [{ data: data.map(d => d.count), backgroundColor: '#005A8B' }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                y: { ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+function renderHoursChart(data) {
+    const ctx = document.getElementById('chart-hours');
+    if (!ctx) return;
+
+    const fullData = Array.from({length:24}, (_,h) => {
+        const match = data.find(d => d.hour === h);
+        return match ? match.count : 0;
+    });
+
+    chartInstances.hours = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Array.from({length:24}, (_,h) => h % 3 === 0 ? (h === 0 ? '12a' : h < 12 ? h+'a' : h === 12 ? '12p' : (h-12)+'p') : ''),
+            datasets: [{ data: fullData, backgroundColor: '#00a0c1' }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { font: { size: 9 } } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+async function loadTickets() {
+    try {
+        const data = await api('/api/tickets');
+        renderTickets(data.tickets);
+    } catch (err) {
+        document.getElementById('page-content').innerHTML = `<div class="empty">Failed to load tickets: ${err.message}</div>`;
+    }
+}
+
+function renderTickets(tickets) {
+    const filtered = ticketFilter === 'all' ? tickets : tickets.filter(t => t.status === ticketFilter);
+
+    document.getElementById('page-content').innerHTML = `
+        <div class="filter-bar">
+            ${['all','open','in-progress','resolved','closed'].map(f => `
+                <button class="filter-chip ${ticketFilter === f ? 'active' : ''}" onclick="setTicketFilter('${f}')">
+                    ${f.charAt(0).toUpperCase() + f.slice(1).replace('-',' ')}
+                    ${f === 'all' ? `(${tickets.length})` : `(${tickets.filter(t => t.status === f).length})`}
+                </button>
+            `).join('')}
+        </div>
+
+        <div class="table-card">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>User</th>
+                            <th>Department</th>
+                            <th>Question</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filtered.length === 0
+                            ? '<tr><td colspan="9" style="text-align:center; color:var(--text-3); padding:30px;">No tickets in this status</td></tr>'
+                            : filtered.map(t => `
+                            <tr>
+                                <td><code style="color:var(--primary); font-weight:700; font-size:11px;">${t.id}</code></td>
+                                <td>${escapeHtml(t.userName || 'Anonymous')}</td>
+                                <td>${escapeHtml(t.department || '-')}</td>
+                                <td style="max-width:300px;">${escapeHtml(t.question)}</td>
+                                <td><span class="badge badge-info">${escapeHtml(t.category || 'Other')}</span></td>
+                                <td><span class="priority-dot priority-${t.priority}"></span>${t.priority}</td>
+                                <td><span class="badge ${statusBadgeClass(t.status)}">${t.status}</span></td>
+                                <td style="white-space:nowrap; font-size:11px; color:var(--text-3);">${formatDate(t.createdAt)}</td>
+                                <td><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick='openTicketModal(${JSON.stringify(t).replace(/'/g,"\\'")})'>Manage</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function setTicketFilter(f) {
+    ticketFilter = f;
+    loadTickets();
+}
+
+function openTicketModal(ticket) {
+    currentTicketId = ticket.id;
+    document.getElementById('modal-title').textContent = `Update ${ticket.id}`;
+    document.getElementById('modal-question').textContent = ticket.question;
+    document.getElementById('modal-status').value = ticket.status;
+    document.getElementById('modal-assigned').value = ticket.assignedTo || '';
+    document.getElementById('modal-resolution').value = ticket.resolution || '';
+    document.getElementById('ticket-modal').classList.add('visible');
+}
+
+function closeModal() {
+    document.getElementById('ticket-modal').classList.remove('visible');
+    currentTicketId = null;
+}
+
+async function saveTicket() {
+    const body = {
+        status: document.getElementById('modal-status').value,
+        assignedTo: document.getElementById('modal-assigned').value.trim() || null,
+        resolution: document.getElementById('modal-resolution').value.trim() || null
+    };
+
+    try {
+        await api(`/api/tickets/${currentTicketId}`, {
+            method: 'PUT',
+            body: JSON.stringify(body)
+        });
+        closeModal();
+        loadTickets();
+    } catch (err) {
+        alert('Failed to update ticket: ' + err.message);
+    }
+}
+
+async function loadInteractions() {
+    try {
+        const data = await api('/api/analytics?days=30');
+        const interactions = data.recentInteractions || [];
+
+        document.getElementById('page-content').innerHTML = `
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Recent Interactions (${interactions.length})</div>
+                    <button class="btn btn-outline" onclick="exportCsv()" style="font-size:12px;">Export all as CSV</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>User</th>
+                                <th>Department</th>
+                                <th>Question</th>
+                                <th>Answer</th>
+                                <th>Category</th>
+                                <th>Confidence</th>
+                                <th>Escalated</th>
+                                <th>Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${interactions.length === 0
+                                ? '<tr><td colspan="9" style="text-align:center; color:var(--text-3); padding:30px;">No interactions yet</td></tr>'
+                                : interactions.map(i => `
+                                <tr>
+                                    <td style="font-size:11px; white-space:nowrap;">${formatDate(i.createdAt)}</td>
+                                    <td>${escapeHtml(i.userName || 'Anonymous')}</td>
+                                    <td>${escapeHtml(i.department || '-')}</td>
+                                    <td style="max-width:250px;">${escapeHtml(i.question)}</td>
+                                    <td style="max-width:350px; font-size:12px; color:var(--text-2);">${escapeHtml((i.answer || '').substring(0, 150))}${(i.answer||'').length > 150 ? '...' : ''}</td>
+                                    <td><span class="badge badge-info">${escapeHtml(i.category || 'Other')}</span></td>
+                                    <td><span class="conf-pill ${confClass(i.confidence)}">${Math.round(i.confidence * 100)}%</span></td>
+                                    <td>${i.escalated ? `<span class="badge badge-warning">${i.ticketId}</span>` : '<span style="color:var(--text-3);">-</span>'}</td>
+                                    <td>${i.rating ? renderStars(i.rating) : '<span style="color:var(--text-3);">-</span>'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        document.getElementById('page-content').innerHTML = `<div class="empty">Failed to load: ${err.message}</div>`;
+    }
+}
+
+async function loadDocuments() {
+    try {
+        const res = await fetch(`${API_URL}/api/documents`);
+        const data = await res.json();
+
+        document.getElementById('page-content').innerHTML = `
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Indexed Documents (${data.total})</div>
+                    <div style="font-size:11px; color:var(--text-3);">Auto-updates when files change</div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Size</th>
+                                <th>Chunks</th>
+                                <th>Last Modified</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.documents.length === 0
+                                ? '<tr><td colspan="4" style="text-align:center; color:var(--text-3); padding:30px;">No documents indexed. Add files to <code>backend/documents/</code></td></tr>'
+                                : data.documents.map(d => `
+                                <tr>
+                                    <td>${escapeHtml(d.name)}</td>
+                                    <td style="font-size:12px; color:var(--text-2);">${(d.size / 1024).toFixed(1)} KB</td>
+                                    <td style="font-size:12px;">${d.chunks}</td>
+                                    <td style="font-size:11px; color:var(--text-3); white-space:nowrap;">${formatDate(d.lastModified)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        document.getElementById('page-content').innerHTML = `<div class="empty">Failed to load: ${err.message}</div>`;
+    }
+}
+
+function confClass(c) {
+    return c >= 0.7 ? 'conf-high' : c >= 0.4 ? 'conf-medium' : 'conf-low';
+}
+
+function statusBadgeClass(s) {
+    return {
+        'open': 'badge-warning',
+        'in-progress': 'badge-info',
+        'resolved': 'badge-success',
+        'closed': 'badge-neutral'
+    }[s] || 'badge-neutral';
+}
+
+function formatDate(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+</script>
+</body>
+</html>

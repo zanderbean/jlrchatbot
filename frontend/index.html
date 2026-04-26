@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PMO Assistant</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+        height: 100%;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: #f4f6f9;
+        color: #1a1d23;
+    }
+
+    .chatbot {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: #ffffff;
+    }
+
+    .header {
+        background: #005A8B;
+        color: white;
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .header-avatar {
+        width: 38px;
+        height: 38px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-avatar svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .header-title {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .header-status {
+        font-size: 11px;
+        opacity: 0.85;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 2px;
+    }
+
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .header-btn {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: inherit;
+    }
+
+    .header-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+    .message {
+        display: flex;
+        gap: 10px;
+        animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user { flex-direction: row-reverse; }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .avatar.bot { background: #005A8B; color: white; }
+    .avatar.user { background: #e5e7eb; }
+
+    .avatar svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .message-content {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: 78%;
+    }
+
+    .message.user .message-content { align-items: flex-end; }
+
+    .bubble {
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .bubble.bot {
+        background: #f4f6f9;
+        border: 1px solid #e2e6ea;
+        border-bottom-left-radius: 4px;
+    }
+
+    .bubble.user {
+        background: #005A8B;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        font-size: 11px;
+    }
+
+    .confidence {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+        background: rgba(0,0,0,0.04);
+    }
+
+    .confidence.high { color: #065f46; background: #d1fae5; }
+    .confidence.medium { color: #92400e; background: #fef3c7; }
+    .confidence.low { color: #991b1b; background: #fee2e2; }
+
+    .sources {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 2px;
+    }
+
+    .sources-label {
+        font-size: 11px;
+        color: #6b7280;
+        margin-right: 2px;
+    }
+
+    .source-chip {
+        display: inline-block;
+        background: rgba(0, 90, 139, 0.08);
+        color: #005A8B;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+    }
+
+    .ticket-notice {
+        font-size: 12px;
+        color: #065f46;
+        background: #d1fae5;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #a7f3d0;
+    }
+
+    .rating-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #6b7280;
+        padding: 2px 0;
+    }
+
+    .rating-label { margin-right: 4px; }
+
+    .thumb-btn {
+        background: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        padding: 3px 7px;
+        border-radius: 6px;
+        line-height: 1;
+        transition: all 0.15s;
+        color: #6b7280;
+    }
+
+    .thumb-btn:hover {
+        background: #f4f6f9;
+        border-color: #e2e6ea;
+    }
+
+    .thumb-btn.up:hover { color: #065f46; }
+    .thumb-btn.down:hover { color: #991b1b; }
+
+    .thumb-btn svg { display: block; width: 14px; height: 14px; }
+
+    .rating-confirm {
+        font-size: 11px;
+        color: #065f46;
+        padding: 3px 8px;
+        background: #d1fae5;
+        border-radius: 10px;
+        display: inline-block;
+    }
+
+    .rating-confirm.negative {
+        color: #92400e;
+        background: #fef3c7;
+    }
+
+    .typing {
+        display: flex;
+        gap: 4px;
+        padding: 8px 4px;
+    }
+
+    .typing span {
+        width: 6px;
+        height: 6px;
+        background: #9ca3af;
+        border-radius: 50%;
+        animation: bounce 1.2s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+        30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    .menu-options {
+        padding: 10px 16px;
+        border-top: 1px solid #e2e6ea;
+        background: #fafbfc;
+        display: none;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .menu-options.visible { display: flex; }
+
+    .menu-chip {
+        font-size: 12px;
+        padding: 6px 12px;
+        background: white;
+        border: 1px solid #e2e6ea;
+        border-radius: 16px;
+        cursor: pointer;
+        color: #374151;
+        transition: all 0.15s;
+        font-family: inherit;
+    }
+
+    .menu-chip:hover {
+        border-color: #005A8B;
+        color: #005A8B;
+        background: #f0f7fb;
+    }
+
+    .input-area {
+        padding: 12px 16px;
+        border-top: 1px solid #e2e6ea;
+        background: white;
+        flex-shrink: 0;
+    }
+
+    .input-wrapper {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: #f4f6f9;
+        border: 1.5px solid #e2e6ea;
+        border-radius: 24px;
+        padding: 5px 5px 5px 16px;
+        transition: border-color 0.15s;
+    }
+
+    .input-wrapper:focus-within {
+        border-color: #005A8B;
+        background: white;
+    }
+
+    #input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 14px;
+        font-family: inherit;
+        min-width: 0;
+    }
+
+    #input::placeholder { color: #9ca3af; }
+
+    #send-btn {
+        width: 36px;
+        height: 36px;
+        background: #005A8B;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+
+    #send-btn:hover:not(:disabled) { background: #003d61; }
+    #send-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+    .input-hint {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-top: 6px;
+        padding: 0 4px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .link-btn {
+        color: #005A8B;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 11px;
+        font-family: inherit;
+        text-decoration: underline;
+        padding: 0;
+    }
+
+    .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="chatbot">
+
+    <div class="header">
+        <div class="header-left">
+            <div class="header-avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2"/>
+                    <circle cx="12" cy="5" r="2"/>
+                    <path d="M12 7v4"/>
+                    <line x1="8" y1="16" x2="8" y2="16"/>
+                    <line x1="16" y1="16" x2="16" y2="16"/>
+                </svg>
+            </div>
+            <div>
+                <div class="header-title">PMO Assistant</div>
+                <div class="header-status">
+                    <span class="status-dot"></span>
+                    <span>Online</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="startNewSession()" title="New conversation">
+                New chat
+            </button>
+        </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="menu-options" id="menu-options">
+        <button class="menu-chip" onclick="askQuestion('How do I submit a status report?')">Status reports</button>
+        <button class="menu-chip" onclick="askQuestion('What does RAG status mean?')">RAG status</button>
+        <button class="menu-chip" onclick="askQuestion('What is the change control process?')">Change control</button>
+        <button class="menu-chip" onclick="askQuestion('What are the gate reviews?')">Gate reviews</button>
+        <button class="menu-chip" onclick="askQuestion('How do I contact PMO?')">Contact PMO</button>
+        <button class="menu-chip" onclick="askQuestion('What is a programme dependency?')">Dependencies</button>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <input type="text" id="input" placeholder="Ask a question about PMO processes..." autocomplete="off" maxlength="500"/>
+            <button id="send-btn" onclick="sendMessage()" aria-label="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+        <div class="input-hint">
+            <span>Press Enter to send</span>
+            <button class="link-btn" onclick="toggleMenu()">Browse topics</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === ''
+        ? 'http://localhost:3001'
+        : window.location.origin;
+
+    let sessionId = null;
+
+    const userId = getUserId();
+    const userName = getUserName();
+
+    function getUserId() {
+        let id = localStorage.getItem('pmo-user-id');
+        if (!id) {
+            id = 'user-' + Math.random().toString(36).substring(2, 11);
+            localStorage.setItem('pmo-user-id', id);
+        }
+        return id;
+    }
+
+    function getUserName() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('name') || localStorage.getItem('pmo-user-name') || 'Anonymous User';
+    }
+
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('send-btn');
+    const menuEl = document.getElementById('menu-options');
+
+    addBotMessage(
+        "Hello. I am the PMO Assistant. Ask me anything about programme management processes, reporting, governance, or PMO terminology. Click <strong>Browse topics</strong> below if you are not sure what to ask."
+    );
+    inputEl.focus();
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    async function sendMessage() {
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        addUserMessage(text);
+        inputEl.value = '';
+        setInputDisabled(true);
+        menuEl.classList.remove('visible');
+
+        const typingId = addTypingIndicator();
+
+        try {
+            const response = await fetch(`${API_URL}/api/ask`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': userId,
+                    'X-User-Name': userName
+                },
+                body: JSON.stringify({ question: text, sessionId })
+            });
+
+            if (!response.ok) throw new Error('Request failed');
+            const data = await response.json();
+
+            sessionId = data.sessionId;
+
+            document.getElementById(typingId)?.remove();
+            addBotMessage(data.answer, {
+                sources: data.sources,
+                confidence: data.confidence,
+                ticketId: data.ticketId,
+                interactionId: data.interactionId
+            });
+
+        } catch (err) {
+            document.getElementById(typingId)?.remove();
+            addBotMessage("I am having trouble connecting right now. Please try again in a moment, or contact the PMO team directly.");
+            console.error('Error:', err);
+        } finally {
+            setInputDisabled(false);
+            inputEl.focus();
+        }
+    }
+
+    function askQuestion(text) {
+        inputEl.value = text;
+        sendMessage();
+    }
+
+    function toggleMenu() {
+        menuEl.classList.toggle('visible');
+    }
+
+    function startNewSession() {
+        if (!confirm('Start a new conversation? The current chat will be cleared.')) return;
+        sessionId = null;
+        messagesEl.innerHTML = '';
+        addBotMessage("Starting a fresh conversation. How can I help?");
+    }
+
+    function userIcon() {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+    }
+
+    function botIcon() {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>';
+    }
+
+    function addUserMessage(text) {
+        const div = document.createElement('div');
+        div.className = 'message user';
+        div.innerHTML = `
+            <div class="avatar user">${userIcon()}</div>
+            <div class="message-content">
+                <div class="bubble user">${escapeHtml(text)}</div>
+            </div>
+        `;
+        messagesEl.appendChild(div);
+        scrollToBottom();
+    }
+
+    function addBotMessage(text, meta = {}) {
+        const { sources, confidence, ticketId, interactionId } = meta;
+        const div = document.createElement('div');
+        div.className = 'message bot';
+
+        const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+        div.id = id;
+
+        let metaRow = '';
+
+        if (confidence !== undefined) {
+            const pct = Math.round(confidence * 100);
+            const level = confidence >= 0.7 ? 'high' : confidence >= 0.4 ? 'medium' : 'low';
+            metaRow += `<span class="confidence ${level}" title="AI confidence in this answer">${pct}% confidence</span>`;
+        }
+
+        if (sources && sources.length > 0) {
+            metaRow += `<span class="sources-label">Sources:</span>`;
+            metaRow += sources.map(s => `<span class="source-chip">${escapeHtml(s)}</span>`).join('');
+        }
+
+        let ticketHtml = '';
+        if (ticketId) {
+            ticketHtml = `<div class="ticket-notice">Ticket <strong>${ticketId}</strong> raised. PMO team has been notified, you will be updated by email.</div>`;
+        }
+
+        let ratingHtml = '';
+        if (interactionId) {
+            ratingHtml = `
+                <div class="rating-row" data-interaction-id="${interactionId}">
+                    <span class="rating-label">Was this helpful?</span>
+                    <button class="thumb-btn up" onclick="rateMessage('${interactionId}', 5, this)" title="Yes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                    </button>
+                    <button class="thumb-btn down" onclick="rateMessage('${interactionId}', 1, this)" title="No">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
+                    </button>
+                </div>
+            `;
+        }
+
+        div.innerHTML = `
+            <div class="avatar bot">${botIcon()}</div>
+            <div class="message-content">
+                <div class="bubble bot">${formatText(text)}</div>
+                ${metaRow ? `<div class="meta-row">${metaRow}</div>` : ''}
+                ${ticketHtml}
+                ${ratingHtml}
+            </div>
+        `;
+
+        messagesEl.appendChild(div);
+        scrollToBottom();
+    }
+
+    async function rateMessage(interactionId, rating, buttonEl) {
+        try {
+            await fetch(`${API_URL}/api/rate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interactionId, rating })
+            });
+
+            const row = buttonEl.parentElement;
+            const msg = rating >= 4
+                ? '<span class="rating-confirm">Thanks for your feedback</span>'
+                : '<span class="rating-confirm negative">Thanks, we will work on improving</span>';
+            row.innerHTML = msg;
+        } catch (err) {
+            console.error('Rating failed', err);
+        }
+    }
+
+    function addTypingIndicator() {
+        const id = 'typing-' + Date.now();
+        const div = document.createElement('div');
+        div.className = 'message bot';
+        div.id = id;
+        div.innerHTML = `
+            <div class="avatar bot">${botIcon()}</div>
+            <div class="bubble bot">
+                <div class="typing"><span></span><span></span><span></span></div>
+            </div>
+        `;
+        messagesEl.appendChild(div);
+        scrollToBottom();
+        return id;
+    }
+
+    function setInputDisabled(disabled) {
+        inputEl.disabled = disabled;
+        sendBtn.disabled = disabled;
+        sendBtn.innerHTML = disabled
+            ? '<div class="spinner"></div>'
+            : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+
+    function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatText(text) {
+        return escapeHtml(text)
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>');
+    }
+</script>
+</body>
+</html>
