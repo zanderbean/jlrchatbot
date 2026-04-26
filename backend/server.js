@@ -352,6 +352,10 @@ app.get('/api/health', (req, res) => {
 
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+});
+
 async function start() {
     if (!process.env.OPENAI_API_KEY) {
         console.warn('OPENAI_API_KEY not set in .env - the chatbot will fail on /api/ask');
